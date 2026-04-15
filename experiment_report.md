@@ -3,46 +3,28 @@
 **Student ID:** AI20K-0336
 **Name:** Võ Thiên Phú
 **Date:** 15/04/2026
-
 ---
 
 ## 1. Kết quả thí nghiệm
 
-Chạy `agent_simulation.py` với 2 bộ dữ liệu và ghi lại kết quả:
-
 | Scenario | Agent Response | Accuracy (1-10) | Notes |
 |----------|----------------|-----------------|-------|
-| Clean Data (`processed_data.csv`) | "Based on my data, the best choice is Laptop at $1200" | 9/10 | Agent trả lời chính xác, chọn sản phẩm electronics có giá cao nhất (Laptop $1200 vs Monitor $300) |
-| Garbage Data (`garbage_data.csv`) | "Based on my data, the best choice is Nuclear Reactor at $999999" | 2/10 | Agent trả lời sai hoàn toàn, chọn sản phẩm không thực tế (Nuclear Reactor) với giá trị outlier bất thường |
+| Clean Data (`processed_data.csv`) | Agent: Based on my data, the best choice is Laptop at $1200. | 9 | Dữ liệu sau ETL giữ lại record hợp lệ, category được chuẩn hóa, giá trị price hợp lý nên agent chọn đúng sản phẩm electronics có giá cao nhất trong tập dữ liệu sạch. |
+| Garbage Data (`garbage_data.csv`) | Agent: Based on my data, the best choice is Nuclear Reactor at $999999. | 2 | Agent bị "đánh lừa" bởi outlier giá trị quá lớn, không có cơ chế xử lý anomaly/validation trước khi suy luận nên đưa ra kết quả phi thực tế. |
+
 
 ---
 
-## 2. Phân tích & nhận xét
+## 2. Phan tich & nhan xet
 
-### Tại sao Agent trả lời sai khi dùng Garbage Data?
+### Tai sao Agent tra loi sai khi dung Garbage Data?
 
-Dữ liệu garbage có nhiều vấn đề nghiêm trọng về chất lượng, dẫn đến Agent đưa ra quyết định sai lệch:
-
-**1. Duplicate IDs:** Có 2 records cùng ID = 1 (Laptop và Banana), gây nhiễu loạn trong việc xác định sản phẩm duy nhất. Hệ thống không biết nên chọn record nào.
-
-**2. Wrong Data Types:** Giá của "Broken Chair" là "ten dollars" (string) thay vì số, khiến việc so sánh giá trị không thể thực hiện chính xác. Agent không thể tính toán hoặc sắp xếp theo giá.
-
-**3. Outliers:** "Nuclear Reactor" có giá $999,999 - một giá trị bất thường và không thực tế cho sản phẩm electronics. Agent chọn sản phẩm này vì nó có giá cao nhất, nhưng đây không phải là lựa chọn hợp lý trong thực tế.
-
-**4. Null/Empty Values:** Record cuối cùng có ID rỗng, product là "Ghost Item" với giá = 0 và category rỗng. Dữ liệu này vô nghĩa nhưng vẫn tồn tại trong dataset, gây nhiễu thông tin.
-
-**5. Inconsistent Format:** Category viết thường ("electronics", "fruit", "furniture") thay vì Title Case như dữ liệu clean, gây khó khăn trong việc filter và group dữ liệu.
-
-Tất cả các vấn đề trên khiến Agent không thể đưa ra quyết định đúng đắn. Thay vì gợi ý sản phẩm thực tế như Laptop hay Monitor, Agent chọn "Nuclear Reactor" - một outlier vô lý.
+Agent trả lời sai vì dữ liệu rác làm hỏng hướng suy luận đơn giản của agent. Thứ nhất, có outlier "Nuclear Reactor" với price = 999999 trong category electronics, nên khi agent lấy giá cao nhất thì record này luôn thắng và che lấp các sản phẩm hợp lý như Laptop. Thứ hai, có duplicate id (id=1 xuất hiện 2 lần) làm giảm độ tin cậy của tập dữ liệu. Thứ ba, có wrong data type ("ten dollars") có thể gây lỗi tính toán hoặc làm sai kết quả thống kê nếu pipeline xử lý số học. Cuối cùng, null/missing values (id rỗng, category rỗng, price = 0) cho thấy dữ liệu không được validation chặt chẽ. Tổng hợp lại, agent không sai về mặt code truy vấn, nhưng sai do "garbage in, garbage out": đầu vào kém chất lượng dẫn đến đầu ra phi thực tế.
 
 ---
 
 ## 3. Kết luận
 
-**Quality Data > Quality Prompt?** Tôi hoàn toàn đồng ý.
+**Quality Data > Quality Prompt?** (Đồng ý hay không? Giải thích ngắn gọn.)
 
-Dù prompt có tốt đến đâu, nếu dữ liệu đầu vào kém chất lượng (duplicate, sai kiểu dữ liệu, outliers, null values), Agent sẽ trả lời sai. Trong thí nghiệm này, cùng một prompt "What is the best electronic product?", nhưng kết quả hoàn toàn khác biệt:
-- Clean data → Agent trả lời chính xác (Laptop $1200)
-- Garbage data → Agent trả lời vô lý (Nuclear Reactor $999,999)
-
-**Bài học:** Data quality là nền tảng của mọi hệ thống AI. Trước khi tối ưu prompt, cần đảm bảo dữ liệu sạch, chuẩn hóa và hợp lệ. Một ETL pipeline tốt (Extract-Transform-Load) với validation chặt chẽ là bước quan trọng đầu tiên để xây dựng AI Agent hiệu quả.
+Đồng ý. Prompt tốt chỉ giúp agent diễn đạt hoặc suy luận trên những gì nó "nhìn thấy"; nếu dữ liệu nền bị nhiễm outlier, sai kiểu, trùng lặp, thiếu trường quan trọng thì câu trả lời vẫn sai. Trong thí nghiệm này, cùng một prompt nhưng clean data cho kết quả hợp lý (Laptop $1200), còn garbage data đẩy agent đến kết luận vô lý (Nuclear Reactor $999999). Vì vậy, đảm bảo data quality là điều kiện tiên quyết trước khi tối ưu prompt.
